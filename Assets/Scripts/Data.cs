@@ -105,19 +105,13 @@ class CBoardState // tag = bstate
                 return;
 
             case SETTLEK.FALL:
-                SettleFall();
-                return;
-
             case SETTLEK.RISE:
-                SettleRise();
+                SettleVertical(settlek);
                 return;
 
             case SETTLEK.FROM_LEFT:
-                SettleFromLeft();
-                return;
-
             case SETTLEK.FROM_RIGHT:
-                SettleFromRight();
+                SettleHorizontal(settlek);
                 return;
         }
     }
@@ -138,51 +132,58 @@ class CBoardState // tag = bstate
         }
     }
 
-    // The two passes in these functions could probably be merged. Fall is bottom-to-top and populate is top-to-bottom
-
-    private void SettleFall()
+    private void SettleVertical(SETTLEK settlek)
     {
-        // requires two passes. First for the fall and second for filling in
+        Debug.Assert(settlek == SETTLEK.FALL || settlek == SETTLEK.RISE);
 
-        for (int col = 0; col < _blayout._length; col++)
+        foreach (int col in new IntIterator(0, _blayout._length - 1))
         {
-            for (int row = _blayout._height - 1; row >= 0; row--)
+            IntIterator rowIteratorFall = settlek == SETTLEK.FALL ?
+                new IntIterator(_blayout._height - 1, 0, -1) :  // bottom to top
+                new IntIterator(0, _blayout._height - 1, 1);    // top to bottom
+
+            foreach (int row in rowIteratorFall)
             {
                 if (_blayout[col, row] != CELLK.STANDARD)
                     continue;
 
                 if (this[col, row] != ' ')
                     continue;
-                
-                for (int rowAbove = row - 1; rowAbove >= 0; rowAbove--)
-                {
-                    // if the cell above is locked, stop searching
 
-                    if (_blayout[col, rowAbove] == CELLK.LOCKED)
+                IntIterator rowIteratorScan = settlek == SETTLEK.FALL ?
+                    new IntIterator(row - 1, 0, -1) :                   // all cells above the current
+                    new IntIterator(row + 1, _blayout._height - 1, 1);  // all cells below the current
+
+                foreach (int rowScan in rowIteratorScan)
+                {
+                    // if the cell is locked, stop searching
+
+                    if (_blayout[col, rowScan] == CELLK.LOCKED)
                         break;
 
-                    // if the cell above is void, skip this cell and continue searching
+                    // if the cell is void, skip this cell and continue searching
 
-                    if (_blayout[col, rowAbove] == CELLK.VOID)
+                    if (_blayout[col, rowScan] == CELLK.VOID)
                         continue;
 
-                    // if the cell above is standard and non-empty, move that to this cell and set that cell to empty
+                    // if the cell is standard and non-empty, move that to this cell and set that cell to empty
 
-                    if (this[col, rowAbove] != ' ')
+                    if (this[col, rowScan] != ' ')
                     {
-                        this[col, row] = this[col, rowAbove];
-                        this[col, rowAbove] = ' ';
+                        this[col, row] = this[col, rowScan];
+                        this[col, rowScan] = ' ';
                         break;
                     }
                 }
             }
-        }
 
-        for (int col = 0; col < _blayout._length; col++)
-        {
-            for (int row = 0; row < _blayout._length; row++)
+            IntIterator rowIteratorPopulate = settlek == SETTLEK.FALL ?
+                new IntIterator(0, _blayout._height - 1, 1) :   // top to bottom
+                new IntIterator(_blayout._height - 1, 0, -1);   // bottom to top
+
+            foreach (int row in rowIteratorPopulate)
             {
-                // if the cell is locked, then neither this cell nor any beneath it can have new characters generate
+                // if the cell is locked, then neither this cell nor any after it can have new characters generate
 
                 if (_blayout[col, row] == CELLK.LOCKED)
                     break;
@@ -198,13 +199,17 @@ class CBoardState // tag = bstate
         }
     }
 
-    private void SettleRise()
+    private void SettleHorizontal(SETTLEK settlek)
     {
-        // requires two passes. First for the fall and second for filling in
+        Debug.Assert(settlek == SETTLEK.FROM_LEFT || settlek == SETTLEK.FROM_RIGHT);
 
-        for (int col = 0; col < _blayout._length; col++)
+        foreach (int row in new IntIterator(0, _blayout._height - 1))
         {
-            for (int row = 0; row < _blayout._height; row++)
+            IntIterator colIteratorFall = settlek == SETTLEK.FROM_LEFT ?
+                new IntIterator(_blayout._length - 1, 0, -1) :  // right to left
+                new IntIterator(0, _blayout._length - 1, 1);    // left to right
+
+            foreach (int col in colIteratorFall)
             {
                 if (_blayout[col, row] != CELLK.STANDARD)
                     continue;
@@ -212,35 +217,40 @@ class CBoardState // tag = bstate
                 if (this[col, row] != ' ')
                     continue;
 
-                for (int rowBelow = row + 1; rowBelow < _blayout._height; rowBelow++)
-                {
-                    // if the cell below is locked, stop searching
+                IntIterator colIteratorScan = settlek == SETTLEK.FROM_LEFT ?
+                    new IntIterator(col - 1, 0, -1) :                   // all cells left of the current
+                    new IntIterator(col + 1, _blayout._height - 1, 1);  // all cells right of the current
 
-                    if (_blayout[col, rowBelow] == CELLK.LOCKED)
+                foreach (int colScan in colIteratorScan)
+                {
+                    // if the cell is locked, stop searching
+
+                    if (_blayout[colScan, row] == CELLK.LOCKED)
                         break;
 
-                    // if the cell below is void, skip this cell and continue searching
+                    // if the cell is void, skip this cell and continue searching
 
-                    if (_blayout[col, rowBelow] == CELLK.VOID)
+                    if (_blayout[colScan, row] == CELLK.VOID)
                         continue;
 
-                    // if the cell below is standard and non-empty, move that to this cell and set that cell to empty
+                    // if the cell is standard and non-empty, move that to this cell and set that cell to empty
 
-                    if (this[col, rowBelow] != ' ')
+                    if (this[colScan, row] != ' ')
                     {
-                        this[col, row] = this[col, rowBelow];
-                        this[col, rowBelow] = ' ';
+                        this[col, row] = this[colScan, row];
+                        this[colScan, row] = ' ';
                         break;
                     }
                 }
             }
-        }
 
-        for (int col = 0; col < _blayout._length; col++)
-        {
-            for (int row = _blayout._height - 1; row >= 0; row--)
+            IntIterator colIteratorPopulate = settlek == SETTLEK.FROM_LEFT ?
+                new IntIterator(0, _blayout._length - 1, 1) :   // left to right
+                new IntIterator(_blayout._length - 1, 0, -1);   // right to left
+
+            foreach (int col in colIteratorPopulate)
             {
-                // if the cell is locked, then neither this cell nor any above it can have new characters generate
+                // if the cell is locked, then neither this cell nor any after it can have new characters generate
 
                 if (_blayout[col, row] == CELLK.LOCKED)
                     break;
@@ -255,126 +265,9 @@ class CBoardState // tag = bstate
             }
         }
     }
-
-    private void SettleFromLeft()
-    {
-        // requires two passes. First for the fall and second for filling in
-
-        for (int row = 0; row < _blayout._height; row++)
-        {
-            for (int col = _blayout._length - 1; col >= 0; col--)
-            {
-                if (_blayout[col, row] != CELLK.STANDARD)
-                    continue;
-
-                if (this[col, row] != ' ')
-                    continue;
-
-                for (int colLeft = col - 1; colLeft >= 0; colLeft--)
-                {
-                    // if the cell to the left is locked, stop searching
-
-                    if (_blayout[col, colLeft] == CELLK.LOCKED)
-                        break;
-
-                    // if the cell to the left is void, skip this cell and continue searching
-
-                    if (_blayout[col, colLeft] == CELLK.VOID)
-                        continue;
-
-                    // if the cell to the left is standard and non-empty, move that to this cell and set that cell to empty
-
-                    if (this[col, colLeft] != ' ')
-                    {
-                        this[col, row] = this[col, colLeft];
-                        this[col, colLeft] = ' ';
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (int row = 0; row < _blayout._height; row++)
-        {
-            for (int col = 0; col < _blayout._length; col++)
-            {
-                // if the cell is locked, then neither this cell nor any to the right it can have new characters generate
-
-                if (_blayout[col, row] == CELLK.LOCKED)
-                    break;
-
-                // if the cell is void, skip this cell and continue generating new characters
-
-                if (_blayout[col, row] == CELLK.VOID)
-                    continue;
-
-                if (this[col, row] == ' ')
-                    this[col, row] = CharRandom();
-            }
-        }
-    }
-
-    private void SettleFromRight()
-    {
-        // requires two passes. First for the fall and second for filling in
-
-        for (int row = 0; row < _blayout._height; row++)
-        {
-            for (int col = 0; col < _blayout._length; col++)
-            {
-                if (_blayout[col, row] != CELLK.STANDARD)
-                    continue;
-
-                if (this[col, row] != ' ')
-                    continue;
-
-                for (int colLeft = col - 1; colLeft >= 0; colLeft--)
-                {
-                    // if the cell to the left is locked, stop searching
-
-                    if (_blayout[col, colLeft] == CELLK.LOCKED)
-                        break;
-
-                    // if the cell to the left is void, skip this cell and continue searching
-
-                    if (_blayout[col, colLeft] == CELLK.VOID)
-                        continue;
-
-                    // if the cell to the left is standard and non-empty, move that to this cell and set that cell to empty
-
-                    if (this[col, colLeft] != ' ')
-                    {
-                        this[col, row] = this[col, colLeft];
-                        this[col, colLeft] = ' ';
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (int row = 0; row < _blayout._height; row++)
-        {
-            for (int col = _blayout._length - 1; col >= 0; col--)
-            {
-                // if the cell is locked, then neither this cell nor any to the left can have new characters generate
-
-                if (_blayout[col, row] == CELLK.LOCKED)
-                    break;
-
-                // if the cell is void, skip this cell and continue generating new characters
-
-                if (_blayout[col, row] == CELLK.VOID)
-                    continue;
-
-                if (this[col, row] == ' ')
-                    this[col, row] = CharRandom();
-            }
-        }
-    }
-
-
 
     // Possibly move to different file. We want the weights of each character to be customizable
+
     private char CharRandom()
     {
         throw new NotImplementedException();
