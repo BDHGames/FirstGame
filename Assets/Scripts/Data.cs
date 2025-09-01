@@ -126,7 +126,7 @@ class CBoardState // tag = bstate
             {
                 if (_blayout[col, row] == CELLK.STANDARD && this[col,row] == ' ')
                 {
-                    this[col, row] = CharRandom();
+                    this[col, row] = RandomChar();
                 }
             }
         }
@@ -194,7 +194,7 @@ class CBoardState // tag = bstate
                     continue;
 
                 if (this[col, row] == ' ')
-                    this[col, row] = CharRandom();
+                    this[col, row] = RandomChar();
             }
         }
     }
@@ -261,16 +261,17 @@ class CBoardState // tag = bstate
                     continue;
 
                 if (this[col, row] == ' ')
-                    this[col, row] = CharRandom();
+                    this[col, row] = RandomChar();
             }
         }
     }
 
     // Possibly move to different file. We want the weights of each character to be customizable
 
-    private char CharRandom()
+    private char RandomChar()
     {
         throw new NotImplementedException();
+        // return GameManager.CharacterWeights.GetChar(), or whatever path we use to get the current loaded character weights. Can weights be modified by gameplay?
     }
 
 }
