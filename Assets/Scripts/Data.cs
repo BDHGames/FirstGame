@@ -1,7 +1,10 @@
 ﻿// Dictionary Data
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+
+// Word Data
 
 enum FPART : short
 {
@@ -29,14 +32,14 @@ struct SWord
 
 // Board Data
 
-enum CELLK
+public enum CELLK
 {
     STANDARD,   // Can be filled
     LOCKED,     // Cannot be filled nor passed through
     VOID,       // Cannot be filled, can be passed through
 }
 
-enum SETTLEK
+public enum SETTLEK
 {
     IN_PLACE = 0,
     FALL,
@@ -45,7 +48,7 @@ enum SETTLEK
     FROM_RIGHT,
 }
 
-class CBoardLayout // this should probably be a scriptable object or otherwise freely swappable
+public class CBoardLayout // this should probably be a scriptable object or otherwise freely swappable
 {
     [Min(1)]
     public int _length = 1;
@@ -56,10 +59,12 @@ class CBoardLayout // this should probably be a scriptable object or otherwise f
     [SerializeField]
     private CELLK[,] _layout;
 
-    CBoardLayout(int length, int height)
+    public CBoardLayout(int length, int height)
     {
         _length = length;
         _height = height;
+
+        Debug.Assert(_length > 0 && _height > 0);
 
         _layout = new CELLK[_length, _height]; // column, row
     }
@@ -69,14 +74,17 @@ class CBoardLayout // this should probably be a scriptable object or otherwise f
         get => _layout[col, row];
         set => _layout[col, row] = value; // should only be used if a boss has a board disruption
     }
+
+    public Vector2Int Vec2IDim() => new Vector2Int(_length, _height);
+    public Vector2Int Vec2IDimMinusOne() => Vec2IDim() - Vector2Int.one;
 }
 
-class CBoardState // tag = bstate
+public class CBoardState // tag = bstate
 {
-    private readonly CBoardLayout   _blayout;
+    public readonly CBoardLayout    _blayout;
     private char[,]                 _chars;
 
-    CBoardState(CBoardLayout blayout)
+    public CBoardState(CBoardLayout blayout)
     {
         _blayout = blayout;
         _chars = new char[blayout._length, blayout._height];
@@ -95,46 +103,65 @@ class CBoardState // tag = bstate
         set => _chars[col, row] = value;
     }
 
+    public CBoardState CloneSettled(SETTLEK settlek, out SBoardDelta delta)
+    {
+        CBoardState bStateNew = Clone();
+        bStateNew.Settle(settlek, out delta);
+
+        return bStateNew;
+    }
+
     // Should only call after Clone or from within CloneSettled(SETTLEK). Not sure which we'll use
-    public void Settle(SETTLEK settlek)
+    public void Settle(SETTLEK settlek, out SBoardDelta delta)
     {
         switch (settlek)
         {
             case SETTLEK.IN_PLACE:
-                SettleInPlace();
+                SettleInPlace(out delta);
                 return;
 
             case SETTLEK.FALL:
             case SETTLEK.RISE:
-                SettleVertical(settlek);
+                SettleVertical(settlek, out delta);
                 return;
 
-            case SETTLEK.FROM_LEFT:
-            case SETTLEK.FROM_RIGHT:
-                SettleHorizontal(settlek);
+            default:
+                SettleHorizontal(settlek, out delta);
                 return;
         }
     }
 
     // all of these functions would be cleaner if we had pre-built iterators. Just select the iterator at the start of the function based on SETTLEK
 
-    private void SettleInPlace()
+    private void SettleInPlace(out SBoardDelta delta)
     {
+        delta = new SBoardDelta(this);
+
         for (int col = 0; col < _blayout._length; col++)
         {
             for (int row = 0; row < _blayout._length; row++)
             {
-                if (_blayout[col, row] == CELLK.STANDARD && this[col,row] == ' ')
+                if (_blayout[col, row] == CELLK.STANDARD)
                 {
-                    this[col, row] = RandomChar();
+                    if (this[col, row] == ' ')
+                    {
+                        this[col, row] = RandomChar();
+                        delta.CreateTile(new Vector2Int(col, row), this[col, row]);
+                    }
+                    else
+                    {
+                        // no-op delta
+                        delta[col, row] = new SBoardDelta.STileDelta(this[col, row], new Vector2Int(col, row));
+                    }
                 }
             }
         }
     }
 
-    private void SettleVertical(SETTLEK settlek)
+    private void SettleVertical(SETTLEK settlek, out SBoardDelta delta)
     {
         Debug.Assert(settlek == SETTLEK.FALL || settlek == SETTLEK.RISE);
+        delta = new SBoardDelta(this);
 
         foreach (int col in new IntIterator(0, _blayout._length - 1))
         {
@@ -148,6 +175,13 @@ class CBoardState // tag = bstate
                     continue;
 
                 if (this[col, row] != ' ')
+                {
+                    // save the delta
+                    delta[col, row] = new SBoardDelta.STileDelta(this[col, row], new Vector2Int(col, row));
+                    continue;
+                }
+
+                if (row == ((settlek == SETTLEK.FALL) ? 0 : _blayout._height - 1))
                     continue;
 
                 IntIterator rowIteratorScan = settlek == SETTLEK.FALL ?
@@ -170,8 +204,12 @@ class CBoardState // tag = bstate
 
                     if (this[col, rowScan] != ' ')
                     {
+                        // store a delta that <col, rowScan> is moving to <col, row>
+                        delta[col, rowScan] = new SBoardDelta.STileDelta(this[col, rowScan], new Vector2Int(col, row));
+
                         this[col, row] = this[col, rowScan];
                         this[col, rowScan] = ' ';
+
                         break;
                     }
                 }
@@ -194,14 +232,19 @@ class CBoardState // tag = bstate
                     continue;
 
                 if (this[col, row] == ' ')
+                {
                     this[col, row] = RandomChar();
+                    delta.CreateTile(new Vector2Int(col, row), this[col, row]);
+                }
             }
         }
     }
 
-    private void SettleHorizontal(SETTLEK settlek)
+    private void SettleHorizontal(SETTLEK settlek, out SBoardDelta delta)
     {
         Debug.Assert(settlek == SETTLEK.FROM_LEFT || settlek == SETTLEK.FROM_RIGHT);
+
+        delta = new SBoardDelta(this);
 
         foreach (int row in new IntIterator(0, _blayout._height - 1))
         {
@@ -215,6 +258,13 @@ class CBoardState // tag = bstate
                     continue;
 
                 if (this[col, row] != ' ')
+                {
+                    // save the delta
+                    delta[col, row] = new SBoardDelta.STileDelta(this[col, row], new Vector2Int(col, row));
+                    continue;
+                }
+
+                if (col == ((settlek == SETTLEK.FROM_LEFT) ? 0 : _blayout._length - 1))
                     continue;
 
                 IntIterator colIteratorScan = settlek == SETTLEK.FROM_LEFT ?
@@ -237,6 +287,9 @@ class CBoardState // tag = bstate
 
                     if (this[colScan, row] != ' ')
                     {
+                        // store a delta that <colScan, row> is moving to <col, row>
+                        delta[colScan, row] = new SBoardDelta.STileDelta(this[colScan, row], new Vector2Int(col, row));
+
                         this[col, row] = this[colScan, row];
                         this[colScan, row] = ' ';
                         break;
@@ -261,17 +314,87 @@ class CBoardState // tag = bstate
                     continue;
 
                 if (this[col, row] == ' ')
+                {
                     this[col, row] = RandomChar();
+                    delta.CreateTile(new Vector2Int(col, row), this[col, row]);
+                }
             }
         }
     }
+
 
     // Possibly move to different file. We want the weights of each character to be customizable
 
     private char RandomChar()
     {
+        return 'A';
         throw new NotImplementedException();
         // return GameManager.CharacterWeights.GetChar(), or whatever path we use to get the current loaded character weights. Can weights be modified by gameplay?
     }
 
+}
+
+/// <summary>
+/// Represents the steps required to get from one board state to the next. Used to tell tiles where to go.
+/// If _vec2iEnd == <-1, -1> it means the tile in that spot was removed.
+/// 
+/// Still need to check the board state as that 
+/// 
+/// Storing _c may be unnecessary, we'll see.
+/// </summary>
+public struct SBoardDelta // tag = bdelta
+{
+    public struct STileDelta
+    {
+        public readonly char _c;
+        public Vector2Int _vec2iEnd;
+
+        public STileDelta(char c, Vector2Int vec2iEnd)
+        {
+            _c = c;
+            _vec2iEnd = vec2iEnd;
+        }
+    }
+
+    public readonly CBoardState _bstateBase;
+    public readonly STileDelta[,] _deltas;
+
+    // We want to avoid duplicates here so a list would be inefficient
+
+    public Dictionary<Vector2Int, char> _newTiles;
+
+    public SBoardDelta(CBoardState bstateBase)
+    {
+        _bstateBase = bstateBase;
+        _deltas = new STileDelta[_bstateBase._blayout._length, _bstateBase._blayout._height];
+
+        foreach (int col in new IntIterator(0, _bstateBase._blayout._length - 1))
+        {
+            foreach (int row in new IntIterator(0, _bstateBase._blayout._height - 1))
+            {
+                _deltas[col, row]._vec2iEnd = -Vector2Int.one;
+            }
+        }
+
+        _newTiles = new Dictionary<Vector2Int, char>();
+    }
+
+    public STileDelta this[int col, int row]
+    {
+        get => _deltas[col, row];
+        set => _deltas[col, row] = value;
+    }
+
+    public STileDelta this[Vector2Int vec2i]
+    {
+        get => _deltas[vec2i.x, vec2i.y];
+        set => _deltas[vec2i.x, vec2i.y] = value;
+    }
+
+    public void CreateTile(Vector2Int vec2iDest, char c)
+    {
+        Debug.Assert(!_newTiles.ContainsKey(vec2iDest));
+
+        _newTiles[vec2iDest] = c;
+    }
 }

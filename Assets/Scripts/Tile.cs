@@ -1,7 +1,7 @@
 ﻿using TMPro;
 using UnityEngine;
 
-class Tile: MonoBehaviour
+public class Tile: MonoBehaviour
 {
     public TextMeshPro _tmpro;
     public char _charLetter;

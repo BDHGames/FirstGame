@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+using UnityEngine;
 
 public class IntIterator : IEnumerator<int>, IEnumerable<int>
 {
@@ -19,7 +19,7 @@ public class IntIterator : IEnumerator<int>, IEnumerable<int>
         _final = final;
         _step = step;
         Debug.Assert((_first < _final) == (_step > 0));
-        Debug.Assert(step != 0 && _first != _final);
+        Debug.Assert(step != 0 || _first == _final);
         _fHasReturned = false;
     }
 
@@ -63,6 +63,105 @@ public class IntIterator : IEnumerator<int>, IEnumerable<int>
         }
 
         _lastReturned += _step;
+        return true;
+    }
+
+    public void Reset()
+    {
+        _fHasReturned = false;
+    }
+}
+
+public class Vector2IntIterator : IEnumerator<Vector2Int>, IEnumerable<Vector2Int>
+{
+    private readonly Vector2Int _first, _final;
+
+    private Vector2Int _lastReturned;
+    private bool _fHasReturned;
+    private bool _fYFirst;
+
+    private Vector2Int _direction;
+
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="first">Start point for the Vector2Int iterator</param>
+    /// <param name="final">Final value of the Vector2Int iterator</param>
+    /// <param name="fYFirst">Force the iterator to increment Vector2Int.y before it increments Vector2.x</param>
+    public Vector2IntIterator(Vector2Int first, Vector2Int final, bool fYFirst = false)
+    {
+        _first = first;
+        _lastReturned = first;
+        _final = final;
+        _fYFirst = fYFirst;
+
+        _fHasReturned = false;
+
+        _direction = new Vector2Int(Math.Sign(final.x - first.x), Math.Sign(final.y - first.y));
+    }
+
+    public Vector2IntIterator(Vector2Int final, bool fYFirst = false) : this(Vector2Int.zero, final, fYFirst)
+    {
+    }
+
+    public Vector2Int Current
+    {
+        get
+        {
+            if (_fHasReturned)
+                return _lastReturned;
+
+            throw new InvalidOperationException("Must call MoveNext before getting Current!");
+        }
+    }
+
+    object IEnumerator.Current => Current;
+
+    public void Dispose() { }
+
+    public IEnumerator<Vector2Int> GetEnumerator() => this;
+    IEnumerator IEnumerable.GetEnumerator() => this;
+
+    public bool MoveNext()
+    {
+        if (_first == _final)
+            return false;
+
+        if (_lastReturned == _final)
+            return false;
+
+        if (!_fHasReturned)
+        {
+            _lastReturned = _first;
+            _fHasReturned = true;
+            return true;
+        }
+
+        if (_fYFirst)
+        {
+            if (_lastReturned.x == _final.x)
+            {
+                _lastReturned.y += _direction.y;
+                _lastReturned.x = _first.x;
+            }
+            else
+            {
+                _lastReturned.x += _direction.x;
+            }
+        }
+        else
+        {
+            if (_lastReturned.y == _final.y)
+            {
+                _lastReturned.x += _direction.x;
+                _lastReturned.y = _first.y;
+            }
+            else
+            {
+                _lastReturned.y += _direction.y;
+            }
+        }
+
         return true;
     }
 
