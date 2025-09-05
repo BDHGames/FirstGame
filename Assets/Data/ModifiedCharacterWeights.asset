@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9cfd0df6478740a4bb6a36d493c8f354, type: 3}
+  m_Name: ModifiedCharacterWeights
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterWeights
+  _weights:
+  - 2
+  - 1.5
+  - 2.5
+  - 2.4
+  - 6
+  - 1.2
+  - 2
+  - 1.65
+  - 4.8
+  - 0.605
+  - 0.985
+  - 3.15
+  - 1.85
+  - 4.1
+  - 3.55
+  - 1.9
+  - 0.595
+  - 4.15
+  - 4.85
+  - 3.85
+  - 2.15
+  - 1
+  - 0.955
+  - 0.635
+  - 1.3
+  - 0.72

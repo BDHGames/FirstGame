@@ -4,25 +4,24 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "CharacterWeights", menuName = "Scriptable Objects/CharacterWeights")]
 public class CharacterWeights : ScriptableObject
 {
-    public float[] _weights;
+	public float[] _weights;
 
-    // do we want to fudge this a bit to ensure that we get vowels if it's been too long between them?
-    public char GetChar()
-    {
-        float sum = _weights.Sum();
+	// do we want to fudge this a bit to ensure that we get vowels if it's been too long between them?
 
-        float uRand = Random.Range(0.0f, 1.0f); // long-term we should have a centralized RNG so we can have consistent test cases.
+	public char RandomChar()
+	{
+		float sum = _weights.Sum();
 
-        float gRand = uRand * sum;
+		float rand = Random.Range(0.0f, 1.0f) * sum; // long-term we should have a centralized RNG so we can have consistent test cases.
 
-        for (int iChar = 0; iChar < 26; iChar++)
-        {
-            if (gRand < _weights[iChar])
-                return (char)('A' + iChar);
+		for (int charIter = 0; charIter < 26; charIter++)
+		{
+			if (rand < _weights[charIter])
+				return (char)('A' + charIter);
 
-            gRand -= _weights[iChar];
-        }
+			rand -= _weights[charIter];
+		}
 
-        return 'Z';
-    }
+		return 'Z';
+	}
 }

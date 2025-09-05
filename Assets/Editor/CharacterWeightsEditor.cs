@@ -5,61 +5,63 @@ using UnityEngine;
 [CustomEditor(typeof(CharacterWeights))]
 public class CharacterWeightsEditor : Editor
 {
-    public static bool __fFormat;
+	private static bool FORMAT_AS_PERCENT;
 
-    public override void OnInspectorGUI()
-    {
-        var charweights = target as CharacterWeights;
+	public override void OnInspectorGUI()
+	{
+		var charweights = target as CharacterWeights;
 
-        if (!charweights)
-            return;
+		if (!charweights)
+			return;
 
-        if (charweights._weights.Length != 26)
-        {
-            charweights._weights = new float[26];
-        }
+		if (charweights._weights.Length != 26)
+		{
+			charweights._weights = new float[26];
+		}
 
-        float gSum = charweights._weights.Sum();
+		float totalWeight = charweights._weights.Sum();
 
-        EditorGUILayout.LabelField("These are floats, not integers, so you can fine-tune these.");
-        EditorGUILayout.LabelField("A higher number means that letter is more likely to appear.");
-        EditorGUILayout.Separator();
+		EditorGUILayout.LabelField("These are floats, not integers, so you can fine-tune these.");
+		EditorGUILayout.LabelField("A higher number means that letter is more likely to appear.");
+		EditorGUILayout.Separator();
 
-        for (int i = 0; i < 26; i++)
-        {
-            char charLabel = (char)('A' + i);
+		for (int charIter = 0; charIter < 26; charIter++)
+		{
+			string label = $"{(char)('A' + charIter)}";
 
-            string strLabel = charLabel.ToString();
+			if (totalWeight > 0)
+			{
+				if (FORMAT_AS_PERCENT)
+				{
+					float uChance = charweights._weights[charIter] / totalWeight;
+					float percentChance = uChance * 100;
+					label += " (" + percentChance.ToString("0.00") + "% Chance)";
+				}
+				else
+				{
+					label += " (~1/" + Mathf.RoundToInt(totalWeight / charweights._weights[charIter]) + " Chance)";
+				}
+			   
+			}
 
-            if (gSum > 0)
-            {
-                if (__fFormat)
-                {
-                    float uChance = charweights._weights[i] / gSum;
-                    float percentChance = uChance * 100;
-                    strLabel += " (" + percentChance.ToString("0.00") + "% Chance)";
-                }
-                else
-                {
-                    strLabel += " (~1/" + Mathf.RoundToInt(gSum / charweights._weights[i]) + " Chance)";
-                }
-               
-            }
+			charweights._weights[charIter] = Mathf.Max(0.0f, EditorGUILayout.FloatField(label, charweights._weights[charIter]));
+		}
 
-            charweights._weights[i] = Mathf.Max(0.0f, EditorGUILayout.FloatField(strLabel, charweights._weights[i]));
-        }
+		EditorGUILayout.Separator();
 
-        EditorGUILayout.Separator();
+		if (GUILayout.Button("Switch Chance Format"))
+		{
+			FORMAT_AS_PERCENT = !FORMAT_AS_PERCENT;
+		}
 
-        if (GUILayout.Button("Switch Chance Format"))
-        {
-            __fFormat = !__fFormat;
-        }
+		EditorGUILayout.Separator();
 
-        EditorGUILayout.Separator();
+		GUI.enabled = false;
+		EditorGUILayout.FloatField("Total Weight", totalWeight);
+		GUI.enabled = true;
 
-        GUI.enabled = false;
-        EditorGUILayout.FloatField("Total Weight", gSum);
-        GUI.enabled = true;
-    }
+		// Required for the editor to save.
+
+		EditorUtility.SetDirty(target);
+	}
 }
