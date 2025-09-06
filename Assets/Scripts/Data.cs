@@ -6,29 +6,18 @@ using UnityEngine;
 
 // Word Data
 
-enum FPART : short
+enum FPART : byte
 {
-	NONE			= 0b000000000,
-	NOUN			= 0b000000001,
-	VERB			= 0b000000010,
-	ADJECTIVE		= 0b000000100,
-	ADVERB			= 0b000001000,
-	PRONOUN			= 0b000010000,
-	PREPOSITION		= 0b000100000,
-	CONJUNCTION		= 0b001000000,
-	INTERJECTION	= 0b010000000,
-	ARTICLE			= 0b100000000,
+	NONE			= 0b00000000,
+	NOUN			= 0b00000001,
+	VERB			= 0b00000010,
+	ADJECTIVE		= 0b00000100,
+	ADVERB			= 0b00001000,
+	PREPOSITION		= 0b00010000, // include prep_phrase
+	PRONOUN			= 0b00100000,
+	CONJUNCTION		= 0b01000000,
+	OTHER			= 0b10000000, // Not used in-game, only used when parsing to flag words for potential omission
 }
-
-struct Word
-{
-	string	_str;	// the string itself
-	FPART	_fpart; // parts of speech
-
-	bool FHasPartOfSpeech(FPART fpart) => (_fpart & fpart) != FPART.NONE;
-}
-
-
 
 // Board Data
 
