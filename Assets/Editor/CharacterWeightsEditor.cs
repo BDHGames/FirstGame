@@ -9,7 +9,7 @@ public class CharacterWeightsEditor : Editor
 
 	public override void OnInspectorGUI()
 	{
-		var charweights = target as CharacterWeights;
+		CharacterWeights charweights = target as CharacterWeights;
 
 		if (!charweights)
 			return;
