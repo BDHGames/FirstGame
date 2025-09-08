@@ -4,6 +4,9 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "CharacterWeights", menuName = "Scriptable Objects/CharacterWeights")]
 public class CharacterWeights : ScriptableObject
 {
+	/// <summary>
+	/// DO NOT MODIFY THIS AT RUNTIME. It has to be public for the custom editor to work, but modifying it via code during gameplay will save those changes.
+	/// </summary>
 	public float[] _weights;
 
 	// do we want to fudge this a bit to ensure that we get vowels if it's been too long between them?

@@ -31,10 +31,15 @@ public enum CELLK
 
 public enum SETTLEK
 {
+	[InspectorName(null)] // hides the NIL element in the inspector
+	NIL = -1,   // Used for overrides
+	[InspectorName("IN PLACE")]
 	IN_PLACE = 0,
 	FALL,
 	RISE,
+	[InspectorName("FROM LEFT")]
 	FROM_LEFT,
+	[InspectorName("FROM RIGHT")]
 	FROM_RIGHT,
 }
 
@@ -77,7 +82,7 @@ public class BoardLayout // this should probably be a scriptable object or other
 	// should Layout have TopRow, BottomRow, LeftCol, and RightCol properties?
 }
 
-public class BoardState
+public class BoardState // the layout _can_ change mid battle due to enemy disruptions.
 {
 	public readonly BoardLayout		_layout;
 	private char[,]					_chars;
@@ -116,9 +121,9 @@ public class BoardState
 		return clonedState;
 	}
 
-	// Should only call after Clone or from within CloneSettled(SETTLEK). Not sure which we'll use
+	// Should only call from within CloneSettled(SETTLEK)
 
-	public void Settle(SETTLEK settlek, out BoardDelta delta)
+	private void Settle(SETTLEK settlek, out BoardDelta delta)
 	{
 		switch (settlek)
 		{
@@ -140,6 +145,7 @@ public class BoardState
 	private void SettleInPlace(out BoardDelta delta)
 	{
 		delta = new BoardDelta(_layout);
+		BoardConfig config = BoardConfig.INSTANCE;
 
 		for (int col = 0; col < _layout._length; col++)
 		{
@@ -149,7 +155,7 @@ public class BoardState
 				{
 					if (this[col, row] == ' ')
 					{
-						this[col, row] = RandomChar();
+						this[col, row] = config.Weights.RandomChar();
 						delta.AddTile(new Vector2Int(col, row), this[col, row]);
 					}
 					else
@@ -166,6 +172,7 @@ public class BoardState
 	{
 		Debug.Assert(settlek == SETTLEK.FALL || settlek == SETTLEK.RISE);
 		delta = new BoardDelta(_layout);
+		BoardConfig config = BoardConfig.INSTANCE;
 
 		foreach (int col in new IntIterator(0, _layout._length - 1))
 		{
@@ -241,7 +248,7 @@ public class BoardState
 
 				if (this[col, row] == ' ')
 				{
-					this[col, row] = RandomChar();
+					this[col, row] = config.Weights.RandomChar();
 					delta.AddTile(new Vector2Int(col, row), this[col, row]);
 				}
 			}
@@ -253,6 +260,7 @@ public class BoardState
 		Debug.Assert(settlek == SETTLEK.FROM_LEFT || settlek == SETTLEK.FROM_RIGHT);
 
 		delta = new BoardDelta(_layout);
+		BoardConfig config = BoardConfig.INSTANCE;
 
 		foreach (int row in new IntIterator(0, _layout._height - 1))
 		{
@@ -323,23 +331,12 @@ public class BoardState
 
 				if (this[col, row] == ' ')
 				{
-					this[col, row] = RandomChar();
+					this[col, row] = config.Weights.RandomChar();
 					delta.AddTile(new Vector2Int(col, row), this[col, row]);
 				}
 			}
 		}
 	}
-
-
-	// Possibly move to different file. We want the weights of each character to be customizable
-
-	private char RandomChar()
-	{
-		return 'A';
-		throw new NotImplementedException();
-		// return GameManager.CharacterWeights.GetChar(), or whatever path we use to get the current loaded character weights. Can weights be modified by gameplay?
-	}
-
 }
 
 /// <summary>
