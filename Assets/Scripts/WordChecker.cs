@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using odin.serialize.OdinSerializer;
 using UnityEngine;
+using UnityEngine.Windows;
 
 
 public class WordChecker : MonoBehaviour
@@ -16,13 +18,12 @@ public class WordChecker : MonoBehaviour
     void Start()
     {
         _allWords = ScriptableObject.CreateInstance<SerializedDict>();
-        _allWords.dict.Add("test",0b10000000);
-        _allWords.dict.Add("run",0b11000000);
-        _allWords.dict.Add("defenestrate",0b01000000);
+        byte[] dictbytes = File.ReadAllBytes(Application.dataPath + "/Data/odinDict");
+        _allWords = SerializationUtility.DeserializeValue<SerializedDict>(dictbytes, DataFormat.Binary);
     }
 
     //checks if the word is in the dict, if yes returns true, if no return false
-    private bool CheckWord(string word, out byte pOS)
+    private bool CheckWord(string word, out FPART pOS)
     {
         return _allWords.dict.TryGetValue(word, out pOS);
     }
@@ -34,7 +35,7 @@ public class WordChecker : MonoBehaviour
         {
             happened = true;
             Debug.Log("check: test\n");
-            byte pOS;
+            FPART pOS;
             if (CheckWord("test", out pOS))
             {
                 Debug.Log("true: " + pOS.ToString());

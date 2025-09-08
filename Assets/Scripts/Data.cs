@@ -6,7 +6,8 @@ using UnityEngine;
 
 // Word Data
 
-enum FPART : byte
+[Flags]
+public enum FPART : byte
 {
 	NONE			= 0b00000000,
 	NOUN			= 0b00000001,
