@@ -24,7 +24,6 @@ public class BoardConfig : MonoBehaviour
 	private Tile _defaultTilePrefab; // this will later be joined by any other tile types we choose to add
 	public Tile DefaultTilePrefab => _defaultTilePrefab;
 
-	[Header("Y must be negative")]
 	[SerializeField]
 	private Vector2 _tileSpacing;
 	public Vector2 TileSpacing => _tileSpacing;
@@ -58,6 +57,7 @@ public class BoardConfig : MonoBehaviour
 		}
 #endif
 	}
+
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
 	void Start()
 	{

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.UIElements;
@@ -15,6 +16,21 @@ public class GameBoard : MonoBehaviour
 	public Tile[,] _stagingBoard; // for new tiles before they fall onto the screen
 
 	BoardConfig _config;
+
+	public static GameBoard INSTANCE;
+
+	private void Awake()
+	{
+		// set up singleton
+
+		if (INSTANCE != null && INSTANCE != this)
+		{
+			Destroy(gameObject);
+			return;
+		}
+
+		INSTANCE = this;
+	}
 
 	enum RESOLVES // RESOLVE State
 	{
@@ -38,8 +54,6 @@ public class GameBoard : MonoBehaviour
 		GenerateBoard();
 	}
 
-
-
 	private void GenerateBoard()
 	{
 		foreach (Vector2Int coord in new Vector2IntIterator(Vector2Int.zero, _config.Layout.BottomRight()))
@@ -54,15 +68,24 @@ public class GameBoard : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
+		if (_resolves == RESOLVES.Nil)
+		{
+			//if (Input.GetMouseButtonDown((int)MouseButton.LeftMouse))
+			//{
+			//	_currState[0, 6] = ' ';
+			//	_nextState = _currState.CloneSettled(_config.SettleKind, out _currDelta);
+			//	_resolves = RESOLVES.DeleteSelected;
+			//}
+		}
+
+		UpdateResolveState();
+	}
+
+	private void UpdateResolveState()
+	{
 		switch (_resolves)
 		{
 			case RESOLVES.Nil:
-				if (Input.GetMouseButtonDown((int)MouseButton.LeftMouse))
-				{
-					_currState[0, 6] = ' ';
-					_nextState = _currState.CloneSettled(_config.SettleKind, out _currDelta);
-					_resolves = RESOLVES.DeleteSelected;
-				}
 				return;
 
 			case RESOLVES.DeleteSelected:
@@ -102,17 +125,18 @@ public class GameBoard : MonoBehaviour
 	{
 		// Vector2s are pass-by-value so there's no point in creating and destroying a new one every iteration of the loop
 
-		Vector2 spawnDir = _config.SettleKind == SETTLEK.IN_PLACE ? Vector2.up : -FallDirection();
+		Vector2 spawnDir = (_config.SettleKind == SETTLEK.IN_PLACE) ? Vector2.up : -FallDirection();
 		Vector2 layoutDims = _config.Layout.Dims();
 		Vector2 tileSpacing = _config.TileSpacing;
 		Vector2 spawnOffset = _config.SpawnOffset;
+		Vector2 stagingTopLeft = spawnOffset + tileSpacing * spawnDir * layoutDims;
 
 		// I'd like this to use SpawnTile but this allows for better data caching.
 
 		foreach (var kvp in _currDelta._newTiles)
 		{
-			Tile tile = _stagingBoard[kvp.Key.x, kvp.Key.y] = Instantiate(_config.DefaultTilePrefab);
-			tile.transform.position = spawnOffset + tileSpacing * spawnDir * (kvp.Key - layoutDims);
+			Tile tile = _stagingBoard[kvp.Key.x, kvp.Key.y] = Instantiate(_config.DefaultTilePrefab, this.transform);
+			tile.transform.position = stagingTopLeft + (kvp.Key * tileSpacing * new Vector2(1, -1));
 			tile._letter = kvp.Value;
 			tile._coord = kvp.Key;
 		}
@@ -148,11 +172,11 @@ public class GameBoard : MonoBehaviour
 			if (!tileToMove)
 				continue;
 
-			Vector3 dest = spawnOffset + _currDelta[coord]._destCoord * tileSpacing;
+			Vector3 dest = spawnOffset + _currDelta[coord]._destCoord * tileSpacing * new Vector2(1, -1);
 
 			// We are at or past our destination. It's a better check than before but still not ideal. Would be good to stress test this
 
-			if (Vector3.Dot(dest - tileToMove.transform.position, fallDir) <= 0)
+			if (Vector3.Dot(dest - tileToMove.transform.position, fallDir) <= 0 || _config.SettleKind == SETTLEK.IN_PLACE)
 			{
 				tileToMove.transform.position = dest;
 			}
@@ -172,7 +196,7 @@ public class GameBoard : MonoBehaviour
 			if (!tileToMove)
 				continue;
 
-			Vector3 dest = spawnOffset + coord * tileSpacing;
+			Vector3 dest = spawnOffset + coord * tileSpacing * new Vector2(1, -1);
 
 			if (Vector3.Dot(dest - tileToMove.transform.position, fallDir) <= 0)
 			{
@@ -222,12 +246,15 @@ public class GameBoard : MonoBehaviour
 
 		_currDelta = null;
 		_resolves = RESOLVES.Nil;
+		_currState = _nextState;
+		_nextState = null;
+		TileSelector.INSTANCE._isSelectingEnabled = true;
 	}
 
 	private Tile SpawnTile(Vector2Int coord, Vector2 posOffset = default)
 	{
 		Tile tile = Instantiate(_config.DefaultTilePrefab, this.transform);
-		tile.transform.position = _config.SpawnOffset + posOffset + (coord * _config.TileSpacing);
+		tile.transform.position = _config.SpawnOffset + posOffset + (coord * _config.TileSpacing * new Vector2(1, -1));
 		tile._coord = coord;
 		tile._letter = _config.Weights.RandomChar();
 		return tile;
@@ -251,5 +278,17 @@ public class GameBoard : MonoBehaviour
 				Debug.LogError($"Unexpected SETTLEK {_config.SettleKind} encountered");
 				return new Vector2(float.NaN, float.NaN);
 		}
+	}
+
+	internal void SubmitWord(List<Tile> selectedTiles)
+	{
+		foreach (Tile tile in selectedTiles)
+		{
+			_currState[tile._coord] = ' ';
+		}
+
+		_nextState = _currState.CloneSettled(_config.SettleKind, out _currDelta);
+		_resolves = RESOLVES.DeleteSelected;
+		TileSelector.INSTANCE._isSelectingEnabled = false;
 	}
 }
