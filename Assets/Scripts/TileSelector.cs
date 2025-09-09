@@ -24,13 +24,18 @@ public class TileSelector : MonoBehaviour
 	[SerializeField]
 	private TILESELECTK _selectionKind = TILESELECTK.CLICK_AND_DRAG;
 
-	List<Tile> _selectedTiles = new List<Tile>();
-	Tile _currentHighlightedTile;
-	string _word = "";
+	[SerializeField]
+	private LineRenderer _lineRenderer;
 
-	bool _isMouseDown = false;
-	public bool _isSelectingEnabled = true;
+	[SerializeField]
+	private SpriteRenderer _debugWordConfirmer;
 
+	private List<Tile> _selectedTiles = new List<Tile>();
+	private Tile _currentHighlightedTile;
+	private string _word = "";
+
+	private bool _isMouseSelecting = false;
+	internal bool _isSelectingEnabled = true;
 
 	public static TileSelector INSTANCE;
 
@@ -68,10 +73,10 @@ public class TileSelector : MonoBehaviour
 		switch (_selectionKind)
 		{
 			case TILESELECTK.CLICK_AND_DRAG:
-				UpdateClickDrag();
+				UpdateMouseSelect(drag: true);
 				return;
 			case TILESELECTK.CLICK_AND_MOVE:
-				UpdateClickMove();
+				UpdateMouseSelect(drag: false);
 				return;
 			case TILESELECTK.CLICK_EACH_LETTER:
 				UpdateClickLetter();
@@ -85,53 +90,65 @@ public class TileSelector : MonoBehaviour
 		}
 	}
 
-	private void UpdateClickDrag()
+	private void UpdateMouseSelect(bool drag)
 	{
-		if (!_isMouseDown)
+		if (!_isMouseSelecting)
 		{
 			if (Input.GetMouseButtonDown((int)MouseButton.Left))
 			{
-				_isMouseDown = true;
+				_isMouseSelecting = true;
 				Debug.Log("Selecting Started");
-				if (_currentHighlightedTile) // we probably shouldn't allow clicking when you're not hovering over a tile but meh
+
+				// should we disallow starting a selection if you're not already highlighting a tile?
+
+				if (_currentHighlightedTile)
 				{
-					_selectedTiles.Add(_currentHighlightedTile);
-					_currentHighlightedTile.SetTileSelectState(Tile.TILESELECTS.SELECTED_AND_HIGHLIGHTED);
-					_word += _currentHighlightedTile._letter;
+					SelectTile(_currentHighlightedTile);
 				}
 			}
 		}
-		if (_isMouseDown)
+		else
 		{
-			if (!Input.GetMouseButton((int)MouseButton.Left))
+			// the drag check makes one of these early exit
+
+			bool stoppedDragSelecting = drag && !Input.GetMouseButton((int)MouseButton.Left);
+			bool stoppedMoveSelecting = !drag && Input.GetMouseButtonDown((int)MouseButton.Left);
+
+			if (stoppedDragSelecting || stoppedMoveSelecting)
 			{
-				_isMouseDown = false;
+				_isMouseSelecting = false;
 				Debug.Log("Selecting Ended");
 
 				if (_word != "")
 				{
 					// this is where we would confirm that this is a real word
-
-					GameBoard.INSTANCE.SubmitWord(_selectedTiles);
-
-					_word = "";
-
-					foreach (Tile t in _selectedTiles)
+					if (true)
 					{
-						if (t == _currentHighlightedTile)
+						GameBoard.INSTANCE.SubmitWord(_selectedTiles);
+					}
+					else
+					{
+						// some sort of animation plays?
+					}
+
+					// would be interesting to check the performance of this vs setting all to normal and THEN highlighting a tile
+
+					foreach (Tile tile in _selectedTiles)
+					{
+						if (tile == _currentHighlightedTile)
 						{
-							t.SetTileSelectState(Tile.TILESELECTS.HIGHLIGHTED);
+							tile.HighlightState = HIGHLIGHTS.HIGHLIGHTED;
 						}
 						else
 						{
-							t.SetTileSelectState(Tile.TILESELECTS.NORMAL);
+							tile.HighlightState = HIGHLIGHTS.NORMAL;
 						}
 					}
-					_selectedTiles.Clear();
-				}
-				else
-				{
 
+					// Deselect all tiles
+					_selectedTiles.Clear();
+					_word = "";
+					_lineRenderer.positionCount = 0;
 				}
 			}
 		}
@@ -152,22 +169,28 @@ public class TileSelector : MonoBehaviour
 		throw new NotImplementedException();
 	}
 
-	private void UpdateClickMove()
-	{
-		throw new NotImplementedException();
-	}
-
+	/// <summary>
+	/// There are multiple cases here that are a bit difficult to understand:
+	/// 
+	/// 1) Hovering over tile when not trying to select => highlight
+	/// 2) Hovering over a tile when trying to select, and list is empty => select and highlight
+	/// 3) Hovering over the second-to-last selected tile => deselect last tile, select + highlight current tile
+	/// 4) Hovering over a different selected tile => no change
+	/// 5) Hovering over an adjacent unselected tile => select and highlight
+	/// 6) Hovering over a non-adjacent unselected tile => highlight
+	/// </summary>
+	/// <param name="tile"></param>
 	internal void MouseOverTile(Tile tile)
 	{
 		_currentHighlightedTile = tile;
 
-		if (_selectionKind == TILESELECTK.CLICK_AND_DRAG && _isMouseDown)
+		bool hoverSelecting = (_selectionKind == TILESELECTK.CLICK_AND_DRAG || _selectionKind == TILESELECTK.CLICK_AND_MOVE) && _isMouseSelecting;
+
+		if (hoverSelecting)
 		{
 			if (_selectedTiles.Count == 0)
 			{
-				_selectedTiles.Add(tile);
-				tile.SetTileSelectState(Tile.TILESELECTS.SELECTED_AND_HIGHLIGHTED);
-				_word += tile._letter;
+				SelectTile(tile);
 			}
 			else
 			{
@@ -175,11 +198,7 @@ public class TileSelector : MonoBehaviour
 
 				if (_selectedTiles.Count >= 2 && _selectedTiles[^2] == tile)
 				{
-					Tile lastTile = _selectedTiles[^1];
-					lastTile.SetTileSelectState(Tile.TILESELECTS.NORMAL);
-					_selectedTiles.Remove(_selectedTiles[^1]);
-					_word = _word[..^1];
-					tile.SetTileSelectState(Tile.TILESELECTS.SELECTED_AND_HIGHLIGHTED);
+					DeselectTile(_selectedTiles[^1]);
 				}
 				else
 				{
@@ -193,13 +212,11 @@ public class TileSelector : MonoBehaviour
 
 						if (Mathf.Abs(gridDist.x) <= 1 && Mathf.Abs(gridDist.y) <= 1 && !_selectedTiles.Contains(tile))
 						{
-							_selectedTiles.Add(tile);
-							tile.SetTileSelectState(Tile.TILESELECTS.SELECTED_AND_HIGHLIGHTED);
-							_word += tile._letter;
+							SelectTile(tile);
 						}
 						else
 						{
-							tile.SetTileSelectState(Tile.TILESELECTS.HIGHLIGHTED);
+							tile.HighlightState = HIGHLIGHTS.HIGHLIGHTED;
 						}
 					}
 				}
@@ -207,26 +224,49 @@ public class TileSelector : MonoBehaviour
 		}
 		else
 		{
-			tile.SetTileSelectState(Tile.TILESELECTS.HIGHLIGHTED);
+			tile.HighlightState = HIGHLIGHTS.HIGHLIGHTED;
 		}
 	}
 
 	internal void MouseLeaveTile(Tile tile)
 	{
-		if (tile.TileSelectState == Tile.TILESELECTS.HIGHLIGHTED)
-			tile.SetTileSelectState(Tile.TILESELECTS.NORMAL);
-		else if (tile.TileSelectState == Tile.TILESELECTS.SELECTED_AND_HIGHLIGHTED)
-			tile.SetTileSelectState(Tile.TILESELECTS.SELECTED);
+		if (tile.HighlightState == HIGHLIGHTS.HIGHLIGHTED)
+			tile.HighlightState = HIGHLIGHTS.NORMAL;
+		else if (tile.HighlightState == HIGHLIGHTS.SELECTED_AND_HIGHLIGHTED)
+			tile.HighlightState = HIGHLIGHTS.SELECTED;
 
 		if (_currentHighlightedTile == tile)
 		{
 			_currentHighlightedTile = null;
 		}
+
+		// how should we handle if you have only one selected tile, you're in click + move, and you move the mouse out of the play grid?
 	}
 
 
 	internal void ClickTile(Tile tile)
 	{
+		// this could drive selection starting instead of UpdateMouseSelect
+	}
 
+	internal void SelectTile(Tile tile)
+	{
+		_selectedTiles.Add(tile);
+		_word += tile._letter;
+		tile.HighlightState = HIGHLIGHTS.SELECTED_AND_HIGHLIGHTED;
+
+		_lineRenderer.positionCount++;
+		_lineRenderer.SetPosition(_lineRenderer.positionCount - 1, tile.transform.position);
+	}
+
+	internal void DeselectTile(Tile tile)
+	{
+		_selectedTiles.Remove(_selectedTiles[^1]);
+		_word = _word[..^1];
+		tile.HighlightState = HIGHLIGHTS.NORMAL;
+
+		_lineRenderer.positionCount--;
+
+		_selectedTiles[^1].HighlightState = HIGHLIGHTS.SELECTED_AND_HIGHLIGHTED;
 	}
 }

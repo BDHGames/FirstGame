@@ -400,3 +400,16 @@ public class BoardDelta
 		_newTiles[destCoord] = c;
 	}
 }
+
+// Tile Data
+
+/// <summary>
+/// These are also flags. 0b01 = highlighted, 0b10 = selected
+/// </summary>
+public enum HIGHLIGHTS
+{
+	NORMAL,
+	HIGHLIGHTED,
+	SELECTED,
+	SELECTED_AND_HIGHLIGHTED
+}

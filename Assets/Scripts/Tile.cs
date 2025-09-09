@@ -15,16 +15,8 @@ public class Tile: MonoBehaviour
 	[SerializeField]
 	private Color _normalColor, _highlightedColor, _selectedColor, _selectedAndHighlightedColor;
 
-	public enum TILESELECTS
-	{
-		NORMAL,
-		HIGHLIGHTED,
-		SELECTED,
-		SELECTED_AND_HIGHLIGHTED
-	}
-
-	private TILESELECTS _tileSelectState = TILESELECTS.NORMAL;
-	public TILESELECTS TileSelectState => _tileSelectState;
+	private HIGHLIGHTS _highlightState = HIGHLIGHTS.NORMAL;
+	public HIGHLIGHTS HighlightState { get => _highlightState; set => SetHighlightState(value); }
 
 	void Update()
 	{
@@ -49,24 +41,24 @@ public class Tile: MonoBehaviour
 		TileSelector.INSTANCE.ClickTile(this);
 	}
 
-	public void SetTileSelectState(TILESELECTS tileSelectState)
+	private void SetHighlightState(HIGHLIGHTS tileSelectState)
 	{
-		_tileSelectState = tileSelectState;
+		_highlightState = tileSelectState;
 
 		if (_sprite)
 		{
-			switch (_tileSelectState)
+			switch (_highlightState)
 			{
-				case TILESELECTS.NORMAL:
+				case HIGHLIGHTS.NORMAL:
 					_sprite.color = _normalColor;
 					return;
-				case TILESELECTS.HIGHLIGHTED:
+				case HIGHLIGHTS.HIGHLIGHTED:
 					_sprite.color = _highlightedColor;
 					return;
-				case TILESELECTS.SELECTED:
+				case HIGHLIGHTS.SELECTED:
 					_sprite.color = _selectedColor;
 					return;
-				case TILESELECTS.SELECTED_AND_HIGHLIGHTED:
+				case HIGHLIGHTS.SELECTED_AND_HIGHLIGHTED:
 					_sprite.color = _selectedAndHighlightedColor;
 					return;
 			}
