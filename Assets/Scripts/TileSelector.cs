@@ -115,7 +115,7 @@ public class TileSelector : MonoBehaviour
 					GameBoard.INSTANCE.SubmitWord(_selectedTiles);
 
 					_word = "";
-					_isSelectingEnabled = false;
+
 					foreach (Tile t in _selectedTiles)
 					{
 						if (t == _currentHighlightedTile)
@@ -179,8 +179,7 @@ public class TileSelector : MonoBehaviour
 					lastTile.SetTileSelectState(Tile.TILESELECTS.NORMAL);
 					_selectedTiles.Remove(_selectedTiles[^1]);
 					_word = _word[..^1];
-
-					Debug.Log(_word);
+					tile.SetTileSelectState(Tile.TILESELECTS.SELECTED_AND_HIGHLIGHTED);
 				}
 				else
 				{
@@ -197,8 +196,6 @@ public class TileSelector : MonoBehaviour
 							_selectedTiles.Add(tile);
 							tile.SetTileSelectState(Tile.TILESELECTS.SELECTED_AND_HIGHLIGHTED);
 							_word += tile._letter;
-
-							Debug.Log(_word);
 						}
 						else
 						{
@@ -220,6 +217,11 @@ public class TileSelector : MonoBehaviour
 			tile.SetTileSelectState(Tile.TILESELECTS.NORMAL);
 		else if (tile.TileSelectState == Tile.TILESELECTS.SELECTED_AND_HIGHLIGHTED)
 			tile.SetTileSelectState(Tile.TILESELECTS.SELECTED);
+
+		if (_currentHighlightedTile == tile)
+		{
+			_currentHighlightedTile = null;
+		}
 	}
 
 

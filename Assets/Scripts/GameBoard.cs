@@ -219,9 +219,21 @@ public class GameBoard : MonoBehaviour
 
 	void FinishResolve()
 	{
-		// move tiles into their correct spot on the playing board. Currently only supports SETTLEK.Fall
+		Vector2IntIterator coordIterator;
 
-		foreach (Vector2Int startCoord in new Vector2IntIterator(_config.Layout.BottomRight(), Vector2Int.zero))
+		switch (_config.SettleKind)
+		{
+			case SETTLEK.IN_PLACE:
+			case SETTLEK.FALL:
+			case SETTLEK.FROM_LEFT:
+				coordIterator = new Vector2IntIterator(_config.Layout.BottomRight(), Vector2Int.zero); // y first doesn't really matter here
+				break;
+			default:
+				coordIterator = new Vector2IntIterator(Vector2Int.zero, _config.Layout.BottomRight());
+				break;
+		}
+
+		foreach (Vector2Int startCoord in coordIterator)
 		{
 			BoardDelta.TileDelta tDelta = _currDelta[startCoord];
 

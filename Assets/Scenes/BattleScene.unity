@@ -287,7 +287,7 @@ MonoBehaviour:
   _defaultSettleKind: 1
   _characterWeights: {fileID: 11400000, guid: cdee6ea1f1318e240b89eb92db19f15e, type: 2}
   _defaultTilePrefab: {fileID: 3947973941020287808, guid: ccc8c4e3ee13711429938ff2c8876ca3, type: 3}
-  _tileSpacing: {x: 1, y: -1}
+  _tileSpacing: {x: 1, y: 1}
   _spawnOffset: {x: -3, y: 3}
   _fallSpeed: 3
 --- !u!4 &1216498067
@@ -335,6 +335,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TileSelector
   _selectionKind: 0
+  _isSelectingEnabled: 1
 --- !u!4 &1896358449
 Transform:
   m_ObjectHideFlags: 0
