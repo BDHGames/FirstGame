@@ -1,7 +1,7 @@
 using System.Linq;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "CharacterWeights", menuName = "Scriptable Objects/CharacterWeights")]
+[CreateAssetMenu(fileName = "CharacterWeights", menuName = "Scriptable Objects/Character Weights")]
 public class CharacterWeights : ScriptableObject
 {
 	/// <summary>

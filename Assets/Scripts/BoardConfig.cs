@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 
 /// <summary>
@@ -72,7 +73,9 @@ public class BoardConfig : MonoBehaviour
 #if DEBUG
 	private void ConstructTestBoard()
 	{
-		_layout = new BoardLayout(7, 7);
+		_layout = ScriptableObject.CreateInstance<BoardLayout>();
+		_layout._length = _layout._height = 7;
+		_layout.SetGrid(new CELLK[_layout._length, _layout._height]);
 
 		_layout[0, 0] = CELLK.STANDARD; _layout[1, 0] = CELLK.STANDARD; _layout[2, 0] = CELLK.VOID;		_layout[3, 0] = CELLK.VOID;		_layout[4, 0] = CELLK.VOID;		_layout[5, 0] = CELLK.STANDARD; _layout[6, 0] = CELLK.STANDARD;
 		_layout[0, 1] = CELLK.STANDARD; _layout[1, 1] = CELLK.STANDARD; _layout[2, 1] = CELLK.STANDARD; _layout[3, 1] = CELLK.VOID;		_layout[4, 1] = CELLK.STANDARD; _layout[5, 1] = CELLK.STANDARD; _layout[6, 1] = CELLK.STANDARD;

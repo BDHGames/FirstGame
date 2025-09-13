@@ -1,6 +1,5 @@
 ﻿// Dictionary Data
 
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,12 +20,15 @@ enum FPART : byte
 
 // Board Data
 
-public enum CELLK
+public enum CELLK : byte
 {
 	STANDARD,	// Can be filled
 	LOCKED,		// Cannot be filled nor passed through
-	VOID,		// Cannot be filled, can be passed through
-	// Covered? Let tile fall through, can't be selected in this spot?
+	VOID,       // Cannot be filled, can be passed through
+				// Covered? Let tile fall through, can't be selected in this spot?
+
+	[InspectorName(null)]
+	MAX
 }
 
 public enum SETTLEK
@@ -41,45 +43,6 @@ public enum SETTLEK
 	FROM_LEFT,
 	[InspectorName("FROM RIGHT")]
 	FROM_RIGHT,
-}
-
-public class BoardLayout // this should probably be a scriptable object or otherwise freely swappable. Also make iterable?
-{
-	[Min(1)]
-	public int _length = 1;
-
-	[Min(1)]
-	public int _height = 1;
-
-	[SerializeField]
-	private CELLK[,] _layout;
-
-	public BoardLayout(int length, int height)
-	{
-		_length = length;
-		_height = height;
-
-		Debug.Assert(_length > 0 && _height > 0);
-
-		_layout = new CELLK[_length, _height]; // column, row
-	}
-
-	public CELLK this[int col, int row]
-	{
-		get => _layout[col, row];
-		set => _layout[col, row] = value; // should only be used if a boss has a board disruption
-	}
-
-	public CELLK this[Vector2Int coord]
-	{
-		get => _layout[coord.x, coord.y];
-		set => _layout[coord.x, coord.y] = value; // should only be used if a boss has a board disruption
-	}
-
-	public Vector2Int Dims() => new Vector2Int(_length, _height);
-	public Vector2Int BottomRight() => Dims() - Vector2Int.one;
-
-	// should Layout have TopRow, BottomRow, LeftCol, and RightCol properties?
 }
 
 public class BoardState // the layout _can_ change mid battle due to enemy disruptions.
