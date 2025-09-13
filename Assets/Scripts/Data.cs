@@ -285,7 +285,7 @@ public class BoardState // the layout _can_ change mid battle due to enemy disru
 
 				IntIterator colIteratorScan = settlek == SETTLEK.FROM_LEFT ?
 					new IntIterator(col - 1, 0, -1) :					// all cells left of the current
-					new IntIterator(col + 1, _layout._height - 1, 1);	// all cells right of the current
+					new IntIterator(col + 1, _layout._length - 1, 1);	// all cells right of the current
 
 				foreach (int colScan in colIteratorScan)
 				{
