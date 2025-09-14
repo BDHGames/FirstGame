@@ -287,7 +287,9 @@ public class GameBoard : MonoBehaviour
 			case SETTLEK.FROM_RIGHT:
 				return Vector2.left;
 			default:
+#if UNITY_EDITOR
 				Debug.LogError($"Unexpected SETTLEK {_config.SettleKind} encountered");
+#endif
 				return new Vector2(float.NaN, float.NaN);
 		}
 	}
