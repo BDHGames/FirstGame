@@ -135,7 +135,7 @@ public class GameBoard : MonoBehaviour
 
 		foreach (var kvp in _currDelta._newTiles)
 		{
-			Tile tile = _stagingBoard[kvp.Key.x, kvp.Key.y] = Instantiate(_config.DefaultTilePrefab, this.transform);
+			Tile tile = _stagingBoard[kvp.Key.x, kvp.Key.y] = Instantiate<Tile>(_config.DefaultTilePrefab, this.transform);
 			tile.transform.position = stagingTopLeft + (kvp.Key * tileSpacing * new Vector2(1, -1));
 			tile._letter = kvp.Value;
 			tile._coord = kvp.Key;
@@ -265,7 +265,7 @@ public class GameBoard : MonoBehaviour
 
 	private Tile SpawnTile(Vector2Int coord, Vector2 posOffset = default)
 	{
-		Tile tile = Instantiate(_config.DefaultTilePrefab, this.transform);
+		Tile tile = Instantiate<Tile>(_config.DefaultTilePrefab, this.transform);
 		tile.transform.position = _config.SpawnOffset + posOffset + (coord * _config.TileSpacing * new Vector2(1, -1));
 		tile._coord = coord;
 		tile._letter = _config.Weights.RandomChar();
@@ -287,7 +287,9 @@ public class GameBoard : MonoBehaviour
 			case SETTLEK.FROM_RIGHT:
 				return Vector2.left;
 			default:
+#if UNITY_EDITOR
 				Debug.LogError($"Unexpected SETTLEK {_config.SettleKind} encountered");
+#endif
 				return new Vector2(float.NaN, float.NaN);
 		}
 	}
