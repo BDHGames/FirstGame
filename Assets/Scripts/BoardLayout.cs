@@ -1,7 +1,4 @@
-﻿// Dictionary Data
-
-using odin.serialize.OdinSerializer;
-using System;
+﻿using odin.serialize.OdinSerializer;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "BoardLayout", menuName = "Scriptable Objects/Board Layout")]
