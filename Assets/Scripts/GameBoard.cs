@@ -68,16 +68,6 @@ public class GameBoard : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		if (_resolves == RESOLVES.Nil)
-		{
-			//if (Input.GetMouseButtonDown((int)MouseButton.LeftMouse))
-			//{
-			//	_currState[0, 6] = ' ';
-			//	_nextState = _currState.CloneSettled(_config.SettleKind, out _currDelta);
-			//	_resolves = RESOLVES.DeleteSelected;
-			//}
-		}
-
 		UpdateResolveState();
 	}
 
