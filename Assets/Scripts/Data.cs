@@ -1,7 +1,4 @@
-﻿// Dictionary Data
-
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 // Word Data
@@ -22,63 +19,32 @@ public enum FPART : byte
 
 // Board Data
 
-public enum CELLK
+public enum CELLK : byte
 {
 	STANDARD,	// Can be filled
 	LOCKED,		// Cannot be filled nor passed through
-	VOID,		// Cannot be filled, can be passed through
-	// Covered? Let tile fall through, can't be selected in this spot?
+	VOID,       // Cannot be filled, can be passed through
+				// Covered? Let tile fall through, can't be selected in this spot?
+
+	[InspectorName(null)]
+	MAX
 }
 
 public enum SETTLEK
 {
+	[InspectorName(null)] // hides the NIL element in the inspector
+	NIL = -1,   // Used for overrides
+	[InspectorName("IN PLACE")]
 	IN_PLACE = 0,
 	FALL,
 	RISE,
+	[InspectorName("FROM LEFT")]
 	FROM_LEFT,
+	[InspectorName("FROM RIGHT")]
 	FROM_RIGHT,
 }
 
-public class BoardLayout // this should probably be a scriptable object or otherwise freely swappable. Also make iterable?
-{
-	[Min(1)]
-	public int _length = 1;
-
-	[Min(1)]
-	public int _height = 1;
-
-	[SerializeField]
-	private CELLK[,] _layout;
-
-	public BoardLayout(int length, int height)
-	{
-		_length = length;
-		_height = height;
-
-		Debug.Assert(_length > 0 && _height > 0);
-
-		_layout = new CELLK[_length, _height]; // column, row
-	}
-
-	public CELLK this[int col, int row]
-	{
-		get => _layout[col, row];
-		set => _layout[col, row] = value; // should only be used if a boss has a board disruption
-	}
-
-	public CELLK this[Vector2Int coord]
-	{
-		get => _layout[coord.x, coord.y];
-		set => _layout[coord.x, coord.y] = value; // should only be used if a boss has a board disruption
-	}
-
-	public Vector2Int Dims() => new Vector2Int(_length, _height);
-	public Vector2Int BottomRight() => Dims() - Vector2Int.one;
-
-	// should Layout have TopRow, BottomRow, LeftCol, and RightCol properties?
-}
-
-public class BoardState
+public class BoardState // the layout _can_ change mid battle due to enemy disruptions.
 {
 	public readonly BoardLayout		_layout;
 	private char[,]					_chars;
@@ -117,9 +83,9 @@ public class BoardState
 		return clonedState;
 	}
 
-	// Should only call after Clone or from within CloneSettled(SETTLEK). Not sure which we'll use
+	// Should only call from within CloneSettled(SETTLEK)
 
-	public void Settle(SETTLEK settlek, out BoardDelta delta)
+	private void Settle(SETTLEK settlek, out BoardDelta delta)
 	{
 		switch (settlek)
 		{
@@ -141,6 +107,7 @@ public class BoardState
 	private void SettleInPlace(out BoardDelta delta)
 	{
 		delta = new BoardDelta(_layout);
+		BoardConfig config = BoardConfig.INSTANCE;
 
 		for (int col = 0; col < _layout._length; col++)
 		{
@@ -150,7 +117,7 @@ public class BoardState
 				{
 					if (this[col, row] == ' ')
 					{
-						this[col, row] = RandomChar();
+						this[col, row] = config.Weights.RandomChar();
 						delta.AddTile(new Vector2Int(col, row), this[col, row]);
 					}
 					else
@@ -167,6 +134,7 @@ public class BoardState
 	{
 		Debug.Assert(settlek == SETTLEK.FALL || settlek == SETTLEK.RISE);
 		delta = new BoardDelta(_layout);
+		BoardConfig config = BoardConfig.INSTANCE;
 
 		foreach (int col in new IntIterator(0, _layout._length - 1))
 		{
@@ -242,7 +210,7 @@ public class BoardState
 
 				if (this[col, row] == ' ')
 				{
-					this[col, row] = RandomChar();
+					this[col, row] = config.Weights.RandomChar();
 					delta.AddTile(new Vector2Int(col, row), this[col, row]);
 				}
 			}
@@ -254,6 +222,7 @@ public class BoardState
 		Debug.Assert(settlek == SETTLEK.FROM_LEFT || settlek == SETTLEK.FROM_RIGHT);
 
 		delta = new BoardDelta(_layout);
+		BoardConfig config = BoardConfig.INSTANCE;
 
 		foreach (int row in new IntIterator(0, _layout._height - 1))
 		{
@@ -278,7 +247,7 @@ public class BoardState
 
 				IntIterator colIteratorScan = settlek == SETTLEK.FROM_LEFT ?
 					new IntIterator(col - 1, 0, -1) :					// all cells left of the current
-					new IntIterator(col + 1, _layout._height - 1, 1);	// all cells right of the current
+					new IntIterator(col + 1, _layout._length - 1, 1);	// all cells right of the current
 
 				foreach (int colScan in colIteratorScan)
 				{
@@ -324,23 +293,12 @@ public class BoardState
 
 				if (this[col, row] == ' ')
 				{
-					this[col, row] = RandomChar();
+					this[col, row] = config.Weights.RandomChar();
 					delta.AddTile(new Vector2Int(col, row), this[col, row]);
 				}
 			}
 		}
 	}
-
-
-	// Possibly move to different file. We want the weights of each character to be customizable
-
-	private char RandomChar()
-	{
-		return 'A';
-		throw new NotImplementedException();
-		// return GameManager.CharacterWeights.GetChar(), or whatever path we use to get the current loaded character weights. Can weights be modified by gameplay?
-	}
-
 }
 
 /// <summary>
@@ -403,4 +361,17 @@ public class BoardDelta
 
 		_newTiles[destCoord] = c;
 	}
+}
+
+// Tile Data
+
+/// <summary>
+/// These are also flags. 0b01 = highlighted, 0b10 = selected
+/// </summary>
+public enum HIGHLIGHTS
+{
+	NORMAL,
+	HIGHLIGHTED,
+	SELECTED,
+	SELECTED_AND_HIGHLIGHTED
 }

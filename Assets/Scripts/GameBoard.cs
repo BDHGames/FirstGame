@@ -1,23 +1,36 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.UIElements;
 
 public class GameBoard : MonoBehaviour
 {
-	public BoardLayout _layout = new BoardLayout(7,7);
-
-	public BoardState _currentBoard, _nextBoard;
-
-	private BoardDelta _currBoardDelta;
+	public BoardState _currState, _nextState;
+	private BoardDelta _currDelta;
 
 	RESOLVES _resolves = RESOLVES.Nil;
-
-	public Tile _tilePrefab;
 
 	public Tile[,] _playableBoard;
 
 	public Tile[,] _stagingBoard; // for new tiles before they fall onto the screen
+
+	BoardConfig _config;
+
+	public static GameBoard INSTANCE;
+
+	private void Awake()
+	{
+		// set up singleton
+
+		if (INSTANCE != null && INSTANCE != this)
+		{
+			Destroy(gameObject);
+			return;
+		}
+
+		INSTANCE = this;
+	}
 
 	enum RESOLVES // RESOLVE State
 	{
@@ -28,40 +41,26 @@ public class GameBoard : MonoBehaviour
 		Cleanup = 3
 	}
 
-
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
 	void Start()
 	{
-		ConstructTestBoard();
+		_config = BoardConfig.INSTANCE;
 
-		_currentBoard = new BoardState(_layout);
+		_currState = new BoardState(_config.Layout);
 
-		_currentBoard.Settle(SETTLEK.FALL, out _);
+		_playableBoard = new Tile[_config.Layout._length, _config.Layout._height];
+		_stagingBoard = new Tile[_config.Layout._length, _config.Layout._height];
 
-		_playableBoard = new Tile[_layout._length, _layout._height];
-		_stagingBoard = new Tile[_layout._length, _layout._height];
-		DisplayBoard();
+		GenerateBoard();
 	}
 
-	private void ConstructTestBoard()
+	private void GenerateBoard()
 	{
-		_layout[0, 0] = CELLK.STANDARD; _layout[1, 0] = CELLK.STANDARD; _layout[2, 0] = CELLK.VOID;	 _layout[3, 0] = CELLK.VOID;	 _layout[4, 0] = CELLK.VOID;	 _layout[5, 0] = CELLK.STANDARD; _layout[6, 0] = CELLK.STANDARD;
-		_layout[0, 1] = CELLK.STANDARD; _layout[1, 1] = CELLK.STANDARD; _layout[2, 1] = CELLK.STANDARD; _layout[3, 1] = CELLK.VOID;	 _layout[4, 1] = CELLK.STANDARD; _layout[5, 1] = CELLK.STANDARD; _layout[6, 1] = CELLK.STANDARD;
-		_layout[0, 2] = CELLK.VOID;	 _layout[1, 2] = CELLK.STANDARD; _layout[2, 2] = CELLK.STANDARD; _layout[3, 2] = CELLK.STANDARD; _layout[4, 2] = CELLK.STANDARD; _layout[5, 2] = CELLK.STANDARD; _layout[6, 2] = CELLK.VOID;
-		_layout[0, 3] = CELLK.VOID;	 _layout[1, 3] = CELLK.VOID;	 _layout[2, 3] = CELLK.STANDARD; _layout[3, 3] = CELLK.STANDARD; _layout[4, 3] = CELLK.STANDARD; _layout[5, 3] = CELLK.VOID;	 _layout[6, 3] = CELLK.VOID;
-		_layout[0, 4] = CELLK.VOID;	 _layout[1, 4] = CELLK.STANDARD; _layout[2, 4] = CELLK.STANDARD; _layout[3, 4] = CELLK.STANDARD; _layout[4, 4] = CELLK.STANDARD; _layout[5, 4] = CELLK.STANDARD; _layout[6, 4] = CELLK.VOID;
-		_layout[0, 5] = CELLK.STANDARD; _layout[1, 5] = CELLK.STANDARD; _layout[2, 5] = CELLK.STANDARD; _layout[3, 5] = CELLK.VOID;	 _layout[4, 5] = CELLK.STANDARD; _layout[5, 5] = CELLK.STANDARD; _layout[6, 5] = CELLK.STANDARD;
-		_layout[0, 6] = CELLK.STANDARD; _layout[1, 6] = CELLK.STANDARD; _layout[2, 6] = CELLK.VOID;	 _layout[3, 6] = CELLK.VOID;	 _layout[4, 6] = CELLK.VOID;	 _layout[5, 6] = CELLK.STANDARD; _layout[6, 6] = CELLK.STANDARD;
-	}
-
-	private void DisplayBoard()
-	{
-		foreach (Vector2Int coord in new Vector2IntIterator(Vector2Int.zero, _currentBoard._layout.BottomRight()))
+		foreach (Vector2Int coord in new Vector2IntIterator(Vector2Int.zero, _config.Layout.BottomRight()))
 		{
-			if (_currentBoard._layout[coord.x, coord.y] == CELLK.STANDARD)
+			if (_config.Layout[coord.x, coord.y] == CELLK.STANDARD)
 			{
-				_playableBoard[coord.x, coord.y] = Instantiate(_tilePrefab);
-				_playableBoard[coord.x, coord.y].transform.position = new Vector2(2 * coord.x, -2 * coord.y);
+				_playableBoard[coord.x, coord.y] = SpawnTile(coord);
 			}
 		}
 	}
@@ -69,15 +68,14 @@ public class GameBoard : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
+		UpdateResolveState();
+	}
+
+	private void UpdateResolveState()
+	{
 		switch (_resolves)
 		{
 			case RESOLVES.Nil:
-				if (Input.GetMouseButtonDown((int)MouseButton.LeftMouse))
-				{
-					_currentBoard[0,6] = ' ';
-					_nextBoard = _currentBoard.CloneSettled(SETTLEK.FALL, out _currBoardDelta);
-					_resolves = RESOLVES.DeleteSelected;
-				}
 				return;
 
 			case RESOLVES.DeleteSelected:
@@ -100,9 +98,9 @@ public class GameBoard : MonoBehaviour
 
 	private void DeleteSelectedTiles()
 	{
-		foreach (Vector2Int coord in new Vector2IntIterator(_currentBoard._layout.BottomRight(), Vector2Int.zero))
+		foreach (Vector2Int coord in new Vector2IntIterator(_config.Layout.BottomRight(), Vector2Int.zero))
 		{
-			BoardDelta.TileDelta tileDelta = _currBoardDelta[coord];
+			BoardDelta.TileDelta tileDelta = _currDelta[coord];
 
 			if (tileDelta.IsTileDeletion() && _playableBoard[coord.x, coord.y])
 			{
@@ -115,12 +113,22 @@ public class GameBoard : MonoBehaviour
 
 	private void SpawnNewTiles()
 	{
-		foreach (var kvp in _currBoardDelta._newTiles)
-		{
-			_stagingBoard[kvp.Key.x, kvp.Key.y] = Instantiate(_tilePrefab);
-			_stagingBoard[kvp.Key.x, kvp.Key.y].transform.position = new Vector2(kvp.Key.x * 2, (_layout._height - kvp.Key.y) * 2);
+		// Vector2s are pass-by-value so there's no point in creating and destroying a new one every iteration of the loop
 
-			_stagingBoard[kvp.Key.x, kvp.Key.y]._letter = kvp.Value;
+		Vector2 spawnDir = (_config.SettleKind == SETTLEK.IN_PLACE) ? Vector2.up : -FallDirection();
+		Vector2 layoutDims = _config.Layout.Dims();
+		Vector2 tileSpacing = _config.TileSpacing;
+		Vector2 spawnOffset = _config.SpawnOffset;
+		Vector2 stagingTopLeft = spawnOffset + tileSpacing * spawnDir * layoutDims;
+
+		// I'd like this to use SpawnTile but this allows for better data caching.
+
+		foreach (var kvp in _currDelta._newTiles)
+		{
+			Tile tile = _stagingBoard[kvp.Key.x, kvp.Key.y] = Instantiate<Tile>(_config.DefaultTilePrefab, this.transform);
+			tile.transform.position = stagingTopLeft + (kvp.Key * tileSpacing * new Vector2(1, -1));
+			tile._letter = kvp.Value;
+			tile._coord = kvp.Key;
 		}
 
 		// TODO mini settle+cleanup step
@@ -136,9 +144,13 @@ public class GameBoard : MonoBehaviour
 
 		bool movedTile = false;
 
-		foreach (Vector2Int coord in new Vector2IntIterator(_currentBoard._layout.BottomRight()))
+		Vector3 fallDir = FallDirection();
+		Vector2 spawnOffset = _config.SpawnOffset;
+		Vector2 tileSpacing = _config.TileSpacing;
+
+		foreach (Vector2Int coord in new Vector2IntIterator(_config.Layout.BottomRight()))
 		{
-			BoardDelta.TileDelta tDelta = _currBoardDelta[coord];
+			BoardDelta.TileDelta tDelta = _currDelta[coord];
 
 			// skip deleted tiles
 
@@ -150,39 +162,39 @@ public class GameBoard : MonoBehaviour
 			if (!tileToMove)
 				continue;
 
-			Vector2 moveDir = _currBoardDelta[coord]._destCoord - coord;
-			moveDir.Normalize();
+			Vector3 dest = spawnOffset + _currDelta[coord]._destCoord * tileSpacing * new Vector2(1, -1);
 
-			Vector3 distToMove = tileToMove.transform.position - new Vector3(2 * _currBoardDelta[coord]._destCoord.x, -2 * _currBoardDelta[coord]._destCoord.y, 0);
-			if (distToMove.magnitude < 0.1)
+			// We are at or past our destination. It's a better check than before but still not ideal. Would be good to stress test this
+
+			if (Vector3.Dot(dest - tileToMove.transform.position, fallDir) <= 0 || _config.SettleKind == SETTLEK.IN_PLACE)
 			{
-				tileToMove.transform.position = new Vector3(2 * _currBoardDelta[coord]._destCoord.x, -2 * _currBoardDelta[coord]._destCoord.y, 0);
+				tileToMove.transform.position = dest;
 			}
 			else
 			{
-				tileToMove.transform.position += dT * new Vector3(3 * moveDir.x, -3 * moveDir.y);
+				tileToMove.transform.position += _config.FallSpeed * dT * fallDir;
 				movedTile = true;
 			}
 		}
 
 		// iterate through staged tiles
 
-		foreach (Vector2Int coord in new Vector2IntIterator(_currentBoard._layout.BottomRight()))
+		foreach (Vector2Int coord in new Vector2IntIterator(_config.Layout.BottomRight()))
 		{
 			Tile tileToMove = _stagingBoard[coord.x, coord.y];
 
 			if (!tileToMove)
 				continue;
 
-			Vector3 distToMove = tileToMove.transform.position - new Vector3(2 * coord.x, -2 * coord.y, 0);
-			if (distToMove.magnitude < 0.1)
+			Vector3 dest = spawnOffset + coord * tileSpacing * new Vector2(1, -1);
+
+			if (Vector3.Dot(dest - tileToMove.transform.position, fallDir) <= 0)
 			{
-				tileToMove.transform.position = new Vector3(2 * coord.x, -2 * coord.y, 0);
+				tileToMove.transform.position = dest;
 			}
 			else
 			{
-				// hardcoding SETTLEK.Fall for now
-				tileToMove.transform.position += dT * new Vector3(0, -3);
+				tileToMove.transform.position += _config.FallSpeed * dT * fallDir;
 				movedTile = true;
 			}
 		}
@@ -197,30 +209,90 @@ public class GameBoard : MonoBehaviour
 
 	void FinishResolve()
 	{
-		// move tiles into their correct spot on the playing board. Currently only supports SETTLEK.Fall
+		Vector2IntIterator coordIterator;
 
-		foreach (Vector2Int startCoord in new Vector2IntIterator(_layout.BottomRight(), Vector2Int.zero))
+		switch (_config.SettleKind)
 		{
-			BoardDelta.TileDelta tDelta = _currBoardDelta[startCoord];
+			case SETTLEK.IN_PLACE:
+			case SETTLEK.FALL:
+			case SETTLEK.FROM_LEFT:
+				coordIterator = new Vector2IntIterator(_config.Layout.BottomRight(), Vector2Int.zero); // y first doesn't really matter here
+				break;
+			default:
+				coordIterator = new Vector2IntIterator(Vector2Int.zero, _config.Layout.BottomRight());
+				break;
+		}
+
+		foreach (Vector2Int startCoord in coordIterator)
+		{
+			BoardDelta.TileDelta tDelta = _currDelta[startCoord];
 
 			if (tDelta.IsTileDeletion())
 				continue;
 
 			_playableBoard[tDelta._destCoord.x, tDelta._destCoord.y] = _playableBoard[startCoord.x, startCoord.y];
+			_playableBoard[tDelta._destCoord.x, tDelta._destCoord.y]._coord = tDelta._destCoord;
 		}
 
 		// move staged tiles
 
-		foreach (Vector2Int coord in new Vector2IntIterator(_layout.BottomRight(), Vector2Int.zero))
+		foreach (Vector2Int coord in new Vector2IntIterator(_config.Layout.BottomRight(), Vector2Int.zero))
 		{
 			if (_stagingBoard[coord.x, coord.y])
 			{
 				_playableBoard[coord.x, coord.y] = _stagingBoard[coord.x, coord.y];
+				_playableBoard[coord.x, coord.y]._coord = coord;
 				_stagingBoard[coord.x, coord.y] = null;
 			}
 		}
 
-		_currBoardDelta = null;
+		_currDelta = null;
 		_resolves = RESOLVES.Nil;
+		_currState = _nextState;
+		_nextState = null;
+		TileSelector.INSTANCE._isSelectingEnabled = true;
+	}
+
+	private Tile SpawnTile(Vector2Int coord, Vector2 posOffset = default)
+	{
+		Tile tile = Instantiate<Tile>(_config.DefaultTilePrefab, this.transform);
+		tile.transform.position = _config.SpawnOffset + posOffset + (coord * _config.TileSpacing * new Vector2(1, -1));
+		tile._coord = coord;
+		tile._letter = _config.Weights.RandomChar();
+		return tile;
+	}
+
+	private Vector2 FallDirection()
+	{
+		switch (_config.SettleKind)
+		{
+			case SETTLEK.IN_PLACE:
+				return Vector2.zero;
+			case SETTLEK.FALL:
+				return Vector2.down;
+			case SETTLEK.RISE:
+				return Vector2.up;
+			case SETTLEK.FROM_LEFT:
+				return Vector2.right;
+			case SETTLEK.FROM_RIGHT:
+				return Vector2.left;
+			default:
+#if UNITY_EDITOR
+				Debug.LogError($"Unexpected SETTLEK {_config.SettleKind} encountered");
+#endif
+				return new Vector2(float.NaN, float.NaN);
+		}
+	}
+
+	internal void SubmitWord(List<Tile> selectedTiles)
+	{
+		foreach (Tile tile in selectedTiles)
+		{
+			_currState[tile._coord] = ' ';
+		}
+
+		_nextState = _currState.CloneSettled(_config.SettleKind, out _currDelta);
+		_resolves = RESOLVES.DeleteSelected;
+		TileSelector.INSTANCE._isSelectingEnabled = false;
 	}
 }

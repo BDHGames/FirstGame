@@ -18,8 +18,11 @@ public class IntIterator : IEnumerator<int>, IEnumerable<int>
 		_lastReturned = first;
 		_final = final;
 		_step = step;
-		Debug.Assert((_first < _final) == (_step > 0));
 		Debug.Assert(step != 0 || _first == _final);
+		if (_first != _final)
+		{
+			Debug.Assert((_first < _final) == (_step > 0));
+		}
 		_hasReturned = false;
 	}
 

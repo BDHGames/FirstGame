@@ -105,3 +105,4 @@ InitTestScene*.unity*
 Utils/*/obj
 Utils/*/bin
 Utils/*/raw-wiktextract-data.jsonl
+*.editorconfig
