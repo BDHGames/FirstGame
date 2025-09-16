@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.Serialization;
 
 public class TileSelector : MonoBehaviour
 {
@@ -31,11 +32,14 @@ public class TileSelector : MonoBehaviour
 	private List<Tile> _selectedTiles = new List<Tile>();
 	private Tile _currentHighlightedTile;
 	private string _word = "";
+	private FPART pOS;
 
 	private bool _isMouseSelecting = false;
 	internal bool _isSelectingEnabled = true;
 
 	public static TileSelector INSTANCE;
+	
+	public WordChecker _wordChecker;
 
 	private void Awake()
 	{
@@ -120,8 +124,9 @@ public class TileSelector : MonoBehaviour
 				if (_word != "")
 				{
 					// this is where we would confirm that this is a real word
-					if (true)
+					if (_wordChecker.CheckWord(_word,out pOS))
 					{
+						Debug.Log("true. POS: "+ pOS.ToString());
 						GameBoard.INSTANCE.SubmitWord(_selectedTiles);
 					}
 					else

@@ -23,11 +23,12 @@ public class WordChecker : MonoBehaviour
     }
 
     //checks if the word is in the dict, if yes returns true, if no return false
-    private bool CheckWord(string word, out FPART pOS)
+    public bool CheckWord(string word, out FPART pOS)
     {
         //returns true if the word is in the dictionary, and puts the parts of speech in pOS
         //otherwise returns false
-        return _allWords.dict.TryGetValue(word, out pOS);
+        Debug.Log("checking: " + word);
+        return _allWords.dict.TryGetValue(word.ToLower(), out pOS);
     }
     
     // Update is called once per frame
