@@ -5,5 +5,5 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "SerializedDict", menuName = "Scriptable Objects/SerializedDict")]
 public class SerializedDict : SerializedScriptableObject
 {
-    public Dictionary<string, FPART> dict = new Dictionary<string, FPART>();
+    public Dictionary<string, FPART> _dict = new Dictionary<string, FPART>();
 }

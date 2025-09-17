@@ -130,6 +130,7 @@ public class TileSelector : MonoBehaviour
 					}
 					else
 					{
+						Debug.Log("false.");
 						// some sort of animation plays?
 					}
 

@@ -1,11 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using odin.serialize.OdinSerializer;
 using UnityEngine;
-using Newtonsoft.Json;
-using File = UnityEngine.Windows.File;
 using fs = System.IO;
 public class RunDictCreation : MonoBehaviour
 {
@@ -13,12 +9,12 @@ public class RunDictCreation : MonoBehaviour
     public SerializedDict allWords;
     private string fileContents;
     public string jsonPath;
-    private Dictionary<String, List<String>> dictContents; 
+    private Dictionary<string, List<string>> dictContents; 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        allWords = SerializedDict.CreateInstance<SerializedDict>();
-        allWords.dict = new Dictionary<string, FPART>();
+        allWords = ScriptableObject.CreateInstance<SerializedDict>();
+        allWords._dict = new Dictionary<string, FPART>();
         dictContents = new Dictionary<string, List<string>>();
     }
 
@@ -120,7 +116,7 @@ public class RunDictCreation : MonoBehaviour
                 //adds words that have at least one included part of speech to the dictionary to be outputted
                 if (!onlyBad)
                 {
-                    allWords.dict.Add(word, POS);
+                    allWords._dict.Add(word, POS);
                 }
                 //adds words that have a part of speech in need of review to reviewWords for output to the review txt
                 if (export)
@@ -130,11 +126,11 @@ public class RunDictCreation : MonoBehaviour
             }
             
             //serializes the dictionary of words to a binary format and writes it out
-            byte[] outBytes = odin.serialize.OdinSerializer.SerializationUtility.SerializeValue(allWords, DataFormat.Binary);
-            File.WriteAllBytes("/run/media/system/F/unityProjects/FirstGame/Assets/Data/odinDict", outBytes);
+            byte[] outBytes = SerializationUtility.SerializeValue(allWords._dict, DataFormat.Binary);
+            File.WriteAllBytes(Application.streamingAssetsPath + "/odinDict", outBytes);
 
             //creates the text file for manual review
-            StreamWriter reviewFile = fs.File.CreateText("/run/media/system/F/unityProjects/FirstGame/Assets/Data/review.txt");
+            StreamWriter reviewFile = File.CreateText(Application.streamingAssetsPath + "/review.txt");
             //and writes out each word logged
             foreach (string reviewWord in reviewWords)
             {

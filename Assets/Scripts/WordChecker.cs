@@ -1,8 +1,8 @@
-using System.Collections.Generic;
-using odin.serialize.OdinSerializer;
-using UnityEngine;
-using UnityEngine.Windows;
 
+using odin.serialize.OdinSerializer;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
 
 public class WordChecker : MonoBehaviour
 {
@@ -18,8 +18,8 @@ public class WordChecker : MonoBehaviour
     void Start()
     {
         _allWords = ScriptableObject.CreateInstance<SerializedDict>();
-        byte[] dictbytes = File.ReadAllBytes(Application.dataPath + "/Data/odinDict");
-        _allWords = SerializationUtility.DeserializeValue<SerializedDict>(dictbytes, DataFormat.Binary);
+        byte[] dictbytes = File.ReadAllBytes(Application.streamingAssetsPath + "/odinDict");
+        _allWords._dict = SerializationUtility.DeserializeValue<Dictionary<string, FPART>>(dictbytes, DataFormat.Binary);
     }
 
     //checks if the word is in the dict, if yes returns true, if no return false
@@ -28,7 +28,15 @@ public class WordChecker : MonoBehaviour
         //returns true if the word is in the dictionary, and puts the parts of speech in pOS
         //otherwise returns false
         Debug.Log("checking: " + word);
-        return _allWords.dict.TryGetValue(word.ToLower(), out pOS);
+
+		if (!_allWords || _allWords._dict == null)
+		{
+			Debug.Log("Couldn't find dictionary, returning true.");
+			pOS = FPART.NONE;
+			return true;
+		}
+
+        return _allWords._dict.TryGetValue(word.ToLower(), out pOS);
     }
     
     // Update is called once per frame

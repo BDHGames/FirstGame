@@ -18,13 +18,17 @@ public class BoardLayout : SerializedScriptableObject
 	public CELLK this[int col, int row]
 	{
 		get => _grid[col, row];
-		set => _grid[col, row] = value; // should only be used if a boss has a board disruption
+#if UNITY_EDITOR
+		set => _grid[col, row] = value;
+#endif
 	}
 
 	public CELLK this[Vector2Int coord]
 	{
 		get => _grid[coord.x, coord.y];
-		set => _grid[coord.x, coord.y] = value; // should only be used if a boss has a board disruption
+#if UNITY_EDITOR
+		set => _grid[coord.x, coord.y] = value;
+#endif
 	}
 
 #if UNITY_EDITOR
