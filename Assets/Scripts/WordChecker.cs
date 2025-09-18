@@ -46,7 +46,7 @@ public class WordChecker : MonoBehaviour
 			pOS = FPART.NONE;
 			string wordTest = word.ToLower();
 			// hard coding this for now
-			return wordTest[0] == 'A' || wordTest[0] == 'I' || wordTest[0] == 'O';
+			return wordTest[0] == 'a' || wordTest[0] == 'i' || wordTest[0] == 'o';
 		}
 
         return _allWords._dict.TryGetValue(word.ToLower(), out pOS);
