@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem.LowLevel;
 
@@ -118,19 +119,25 @@ public class TileSelector : MonoBehaviour
 			if (stoppedDragSelecting || stoppedMoveSelecting)
 			{
 				_isMouseSelecting = false;
-				Debug.Log("Selecting Ended");
+				Debug.Log("Selecting Ended\n");
 
 				if (_word != "")
 				{
 					// this is where we would confirm that this is a real word
 					if (_wordChecker.CheckWord(_word, out _pOS))
 					{
-						Debug.Log("true. POS: " + _pOS.ToString());
+						Debug.Log($"Submitted {_word} ({_pOS})");
+						List<string> coordList = _selectedTiles.Select(tile => tile._coord).Select(coord => $"<{coord.x},{coord.y}>").ToList();
+						Debug.Log("- Tiles Used: " + string.Join(", ", coordList));
+						Debug.Log("");
 						GameBoard.INSTANCE.SubmitWord(_selectedTiles);
 					}
 					else
 					{
-						Debug.Log("false.");
+						Debug.Log($"{_word} is not a word.");
+						List<string> coordList = _selectedTiles.Select(tile => tile._coord).Select(coord => $"<{coord.x},{coord.y}>").ToList();
+						Debug.Log("- Deselecting " + string.Join(", ", coordList));
+						Debug.Log("");
 						// some sort of animation plays?
 					}
 

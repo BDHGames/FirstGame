@@ -300,6 +300,25 @@ public class BoardState // the layout _can_ change mid battle due to enemy disru
 			}
 		}
 	}
+
+	public override string ToString()
+	{
+		string result = "";
+
+		foreach (int row in new IntIterator(0, _layout._height - 1))
+		{
+			foreach (int col in new IntIterator(0, _layout._length - 1))
+			{
+				result += _chars[col, row];
+			}
+			if (row != _layout._length - 1)
+			{
+				result += '\n';
+			}
+		}
+
+		return result;
+	}
 }
 
 /// <summary>

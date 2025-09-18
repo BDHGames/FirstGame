@@ -19,6 +19,8 @@ public class GameBoard : MonoBehaviour
 
 	public static GameBoard INSTANCE;
 
+	private int _totalWords; // used for logging
+
 	private void Awake()
 	{
 		// set up singleton
@@ -61,8 +63,12 @@ public class GameBoard : MonoBehaviour
 			if (_config.Layout[coord.x, coord.y] == CELLK.STANDARD)
 			{
 				_playableBoard[coord.x, coord.y] = SpawnTile(coord);
+				_currState[coord] = _playableBoard[coord.x, coord.y]._letter;
 			}
 		}
+
+		Debug.Log("Generated Board:");
+		Debug.Log(_currState);
 	}
 
 	// Update is called once per frame
@@ -251,6 +257,11 @@ public class GameBoard : MonoBehaviour
 		_currState = _nextState;
 		_nextState = null;
 		TileSelector.INSTANCE._isSelectingEnabled = true;
+
+		Debug.Log("");
+		Debug.Log("Current State:");
+		Debug.Log(_currState);
+		Debug.Log("");
 	}
 
 	private Tile SpawnTile(Vector2Int coord, Vector2 posOffset = default)
@@ -294,5 +305,7 @@ public class GameBoard : MonoBehaviour
 		_nextState = _currState.CloneSettled(_config.SettleKind, out _currDelta);
 		_resolves = RESOLVES.DeleteSelected;
 		TileSelector.INSTANCE._isSelectingEnabled = false;
+
+		Debug.Log(++_totalWords + " Word(s) Submitted");
 	}
 }
