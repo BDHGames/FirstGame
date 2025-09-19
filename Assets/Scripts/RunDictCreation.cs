@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using odin.serialize.OdinSerializer;
 using UnityEngine;
-using fs = System.IO;
+
 public class RunDictCreation : MonoBehaviour
 {
     private bool hasRun = false;
